@@ -1,0 +1,23 @@
+{
+  "name": "tsilibot",
+  "version": "1.0.0",
+  "description": "Tsilivis Personal Assistant Bot",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tsili852/TsiliBot.git"
+  },
+  "author": "Nick Tsilivis",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tsili852/TsiliBot/issues"
+  },
+  "homepage": "https://github.com/tsili852/TsiliBot#readme",
+  "dependencies": {
+    "botbuilder": "^3.9.0",
+    "restify": "^5.0.1"
+  }
+}
