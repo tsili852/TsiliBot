@@ -1,5 +1,6 @@
 var restify = require('restify');
 var builder = require('botbuilder');
+var $ = require ('jquery');
 var http = require('http');
 
 //=================================================
@@ -23,9 +24,22 @@ server.post('/api/messages', connector.listen());
 // Bot Dialogs
 //=================================================
 
+var hourInDay = new Date().getHours();
+var greetingTimeMessage;
+
+if (hourInDay >= 0 && hourInDay < 12) {
+		greetingTimeMessage = ('Good morning');; 
+
+	} else if (hourInDay >= 12 && hourInDay < 17) {
+		greetingTimeMessage = ('Good afternoon');;
+
+	} else if (hourInDay >= 17 && hourInDay < 24) {
+		greetingTimeMessage = ('Good evening');;
+	}
+
 bot.dialog('/', function (session, args) {
    if (!session.userData.greeting) {
-       session.send("Hello. What is your name ?");
+       session.send("Hey!! What is your name ?");
        session.userData.greeting = true;
    } else if (!session.userData.name) {
        getName(session);
@@ -43,7 +57,7 @@ bot.dialog('/', function (session, args) {
 function getName(session) {
     name = session.message.text;
     session.userData.name = name;
-    session.send("Hello, " + name + ". What is your Email Address ?" )
+    session.send(greetingTimeMessage + ", " + name + ". What is your Email Address ?" )
 }
 
 function getEmail(session) {

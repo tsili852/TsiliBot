@@ -18,6 +18,7 @@
   "homepage": "https://github.com/tsili852/TsiliBot#readme",
   "dependencies": {
     "botbuilder": "^3.9.0",
+    "jquery": "^3.2.1",
     "restify": "^5.0.1"
   }
 }
