@@ -1,6 +1,6 @@
 var restify = require('restify');
 var builder = require('botbuilder');
-var $ = require ('jquery');
+var config = require('./bot-config.json');
 var http = require('http');
 
 //=================================================
@@ -13,12 +13,17 @@ server.listen(process.env.port || process.env.PORT || 3978, function () {
 });
 
 var connector = new builder.ChatConnector({
-    appId: 'c88f8061-78f6-48ca-9e0c-9e6f44f29df5',
-    appPassword: 'ewNcVq8THf2zopYvBg6FDdm'
+    appId: config.AppCredentials.app_id,
+    appPassword: config.AppCredentials.app_password
 });
+
 var bot = new builder.UniversalBot(connector);
 
 server.post('/api/messages', connector.listen());
+
+var model = 'https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/25ca0874-22b3-4b42-b9f9-e6091ce8f0e2?subscription-key=0b8f0e68b07a45f9a45206492fb9f17d&verbose=true&timezoneOffset=0&spellCheck=false';
+var recognizer = new builder.LuisRecognizer(model);
+var intents = new builder.IntentDialog({ recognizers: [recognizer] });
 
 //=================================================
 // Bot Dialogs
@@ -26,78 +31,113 @@ server.post('/api/messages', connector.listen());
 
 var hourInDay = new Date().getHours();
 var greetingTimeMessage;
+var goodbyeTime;
 
 if (hourInDay >= 0 && hourInDay < 12) {
-		greetingTimeMessage = ('Good morning');; 
+		greetingTimeMessage = 'Good morning';
+        goodbyeTime = 'morning';
 
 	} else if (hourInDay >= 12 && hourInDay < 17) {
-		greetingTimeMessage = ('Good afternoon');;
+		greetingTimeMessage = 'Good afternoon';
+        goodbyeTime = 'afternoon';
 
 	} else if (hourInDay >= 17 && hourInDay < 24) {
-		greetingTimeMessage = ('Good evening');;
+		greetingTimeMessage = 'Good evening';
+        goodbyeTime = 'evening';
 	}
+    
+bot.dialog('/', intents);
 
-bot.dialog('/', function (session, args) {
-   if (!session.userData.greeting) {
-       session.send("Hey!! What is your name ?");
-       session.userData.greeting = true;
-   } else if (!session.userData.name) {
-       getName(session);
-   } else if (!session.userData.email) {
-       getEmail(session);
-   } else if (!session.userData.password) {
-       getPassword(session);
-   } else {
-        session.userData = null;
+intents.matches('How is Assistant', [
+    function (session) {
+        session.send('My name is Norma and I am Mr Tsilivis personal assistant.');
+        if (!session.userData.name) {
+            session.beginDialog('/profile');
+        }
+        else {
+            session.send('How can I help you %s', session.userData.name);
+            session.endDialog();
+        }
     }
+]);
 
+intents.matches('Nicks Age', [
+    function (session) {
+        session.send('Mr Tsilivis is 29 years old. Anythin else ?');
+    }
+]);
+
+intents.matches('Take a note', [
+    function (session) {
+        session.send('Thank you I will notify Nick');
+    }
+]);
+
+intents.matches('Where is nick', [
+    function (session) {
+        session.send('I am sorry but Nick is not here. Thats all I can say :) ');
+    }
+]);
+
+intents.matches('Send Boss CV', [
+    function (session) {
+        session.send('I can send you Mr Tsilivis info in your email.');
+        // session.beginDialog('/email');
+        if (!session.userData.email) {
+            session.beginDialog('/email');
+        }
+        else {
+            session.send('Done!! Sent it at: %s. Anything else ?', session.userData.email);
+        }
+    }
+]);
+
+intents.matches('Leaving', [
+    function (session) {
+        session.send('Thank you very much. Have a nice %s :D', goodbyeTime);
+    }
+]);
+
+intents.onDefault([
+    function (session, args, next) {
+        if(!session.userData.name) {
+            session.beginDialog('/profile');
+        } else {
+            session.send('Hi %s. How can I help you ?', session.userData.name);
+        }
+    }
+]);
+
+bot.dialog('/profile', [
+    function (session) {
+        // session.send('Hello, My name is Norma. Please give me your name.');
+        builder.Prompts.text(session, 'Hello, My name is Norma. Please give me your name.');
+    },
+    function (session, results) {
+        session.userData.name = results.response;
+        session.send('Hi %s. How can I help you ?', session.userData.name);
+        session.endDialog();
+    }
+]);
+
+bot.dialog('/email', [
+    function (session, args, next) {
+        builder.Prompts.text(session, 'Can I have your email address please ?');
+    },
+    function (session, result) {
+        session.send('Thak you %s, you will receive an email from me very soon.', session.userData.name);
+        session.userData.email = result.response;
+        // session.endDialog;
+    }
+]);
+
+bot.dialog('reset', function (session, args, next) {
+    session.userData.name = '';
+    session.userData.email = '';
+    session.send('Done!');
     session.endDialog();
+})
+.triggerAction({
+    matches: /^reset$/i,
+    confirmPrompt: "Are you sure?"
 });
-
-function getName(session) {
-    name = session.message.text;
-    session.userData.name = name;
-    session.send(greetingTimeMessage + ", " + name + ". What is your Email Address ?" )
-}
-
-function getEmail(session) {
-    var regex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-    email = session.message.text;
-    if (regex.test(email)) {
-        session.userData.email = email;
-        session.send("Thank you, " + session.userData.name + ". Please set a new password.")
-    } else {
-        session.send("Please type a valid email address. Like test@hotmail.com")
-    }
-}
-
-function getPassword(session) {
-    var regex = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$/;
-    password = session.message.text;
-    if (regex.test(password)) {
-        session.userData.password = password;
-        var data = session.userData;
-        sendData(data, function (msg) {
-           session.send(msg);
-           session.userData = null; 
-        });
-    }
-    else {
-        session.send("Password must contain at least 8 characters, including at least 1 number, 1 uppercase letter, 1 lowercase letter and 1 special character. For example: testpass@123");
-    }
-}
-
-function sendData(data, cb) {
-    http.get("http://local.dev/github/aplostestbot/saveData.php?name=" + data.name + "&email=" + data.email + "&password=" + data.password, function (res) {
-       var msg = '';
-       res.on("data", function (chunk) {
-           msg += chunk;
-       });
-
-       res.on('end', function () {
-           cb(msg);
-       }) 
-    }).on('error', function (e) {
-       console.log("Error: " + e.message); 
-    });
-}
